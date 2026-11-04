@@ -22,8 +22,8 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
       let disposed = false;
 
       const measure = () => {
-        const available = container.clientWidth;
-        if (disposed || !available) return;
+        const viewportWidth = container.clientWidth;
+        if (disposed || !viewportWidth) return;
 
         // Measure the longest rendered value in each column without wrapping.
         // Exclude expanded detail rows: they span columns rather than size one.
@@ -51,11 +51,15 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
         const preferred = cells.map(cell => cell.getBoundingClientRect().width);
         const minimum = cells.map((cell, index) => {
           const css = getComputedStyle(cell);
-          return nowrapColumns?.includes(index) ? preferred[index] : Math.min(preferred[index], parseFloat(css.paddingLeft) + parseFloat(css.paddingRight) + parseFloat(css.fontSize) * 2);
+          const hasStatus = Array.from(natural.rows).some(row => row.cells[index]?.querySelector('.status-pill'));
+          return nowrapColumns?.includes(index) || hasStatus ? preferred[index] : Math.min(preferred[index], parseFloat(css.paddingLeft) + parseFloat(css.paddingRight) + parseFloat(css.fontSize) * 2);
         });
         natural.remove();
         if (!preferred.length) return;
 
+        // Preserve indivisible status labels; scroll the table only if its
+        // minimum column widths cannot fit inside the viewport.
+        const available = Math.max(viewportWidth, minimum.reduce((sum, value) => sum + value, 0));
         const flexible = Math.min(Math.max(0, flexColumn), preferred.length - 1);
         const otherTotal = preferred.reduce((sum, value, index) => sum + (index === flexible ? 0 : value), 0);
         const otherMinimum = minimum.reduce((sum, value, index) => sum + (index === flexible ? 0 : value), 0);
@@ -78,8 +82,8 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
     }, [children, flexColumn, className, nowrapColumns]);
 
     return (
-      <div ref={containerRef} className="relative w-full min-w-0">
-        <table ref={tableRef} className={cn('data-table w-full caption-bottom text-sm', className)} style={{ ...style, tableLayout: widths.length ? 'fixed' : 'auto' }} {...props}>
+      <div ref={containerRef} className="relative w-full min-w-0 overflow-x-auto">
+        <table ref={tableRef} className={cn('data-table w-full caption-bottom text-sm', className)} style={{ ...style, minWidth: widths.length ? widths.reduce((sum, width) => sum + width, 0) : undefined, tableLayout: widths.length ? 'fixed' : 'auto' }} {...props}>
           {widths.length > 0 && <colgroup>{widths.map((width, index) => <col key={index} style={{ width }}/> )}</colgroup>}
           {children}
         </table>
