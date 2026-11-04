@@ -1,4 +1,4 @@
-import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from '@/hooks/use-theme';
@@ -26,8 +26,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-const Router = import.meta.env.VITE_ROUTER_MODE === 'hash' ? HashRouter : BrowserRouter;
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -63,7 +61,7 @@ function AppContent() {
   return (
     <ThemeProvider>
       <LanguageDirection />
-      <Router>
+      <BrowserRouter>
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
@@ -87,7 +85,7 @@ function AppContent() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AuthProvider>
-      </Router>
+      </BrowserRouter>
       <Toaster position="top-center" />
     </ThemeProvider>
   );
